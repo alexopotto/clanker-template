@@ -121,7 +121,7 @@ Phases never pass data through prompts. They read and write `.md` files:
 | File | Written by | Read by | Purpose |
 |---|---|---|---|
 | `docs/prd-<slug>.md` (or `specs/<slug>.md`) | the user / `/spec` | `slice` | the spec — input to the whole pipeline |
-| `.clanker/context.md` | pre-flight | every subagent | concatenated `CLAUDE.md` + `docs/*.md` |
+| `.clanker/context.md` | pre-flight | every subagent | concatenated `AGENTS.md` (or `CLAUDE.md`) + `docs/*.md` |
 | `.clanker/baseline.md` | pre-flight | (informational) | pre-pipeline test pass + commit SHA |
 | `docs/tickets/NN-*.md` | `slice` | `ralph` (one per ticket) | per-slice spec with TDD checklist |
 | `.clanker/simplify-notes.md` | `ralph` (appended) | `simplify` | out-of-scope spots flagged during implementation |

@@ -31,14 +31,15 @@ This repo contains **only the skills** — no application code. Use it as a star
 docs/                            where the pipeline writes tickets, ADRs, etc.
 specs/                           where PRDs live
 qa/                              where the qa phase writes its reports
-CLAUDE.md                        repo-level conventions (you fill in your stack)
+AGENTS.md                        repo-level conventions (you fill in your stack)
+CLAUDE.md                        symlink to AGENTS.md (so Claude Code finds it)
 ```
 
 ---
 
 ## Quickstart
 
-1. **Adapt `CLAUDE.md`** to your stack. Fill in:
+1. **Adapt `AGENTS.md`** to your stack. Fill in:
    - Your package manager (`pnpm` / `npm` / `bun` / `yarn`)
    - Your verify command (the one that runs type-check + lint + tests)
    - Your test runner (Vitest / Jest / Bun test / etc.)
@@ -72,7 +73,7 @@ Tested on Claude Code. The skills themselves contain no Claude-specific assumpti
 ```sh
 git clone <this-repo> my-new-project
 cd my-new-project
-# edit CLAUDE.md for your stack, then start writing PRDs
+# edit AGENTS.md for your stack, then start writing PRDs
 ```
 
 **Option B — Copy the skills into an existing repo.**
@@ -80,7 +81,7 @@ cd my-new-project
 cd existing-repo
 cp -R /path/to/clanker-template/.agents .
 ln -s ../.agents/skills .claude/skills
-# adapt your existing CLAUDE.md to add the conventions this pipeline expects
+# add (or update) AGENTS.md with the conventions this pipeline expects
 ```
 
 ---
