@@ -71,12 +71,15 @@ The skills live under `.agents/skills/` (the convention Codex / VS Code Copilot 
 
 **Option A — Ask your AI agent to install it (recommended).**
 
-Open your project in Claude Code, Codex, Copilot, Cursor, or any agent that can run shell, and paste this prompt:
+Open your project in Claude Code, Codex, Copilot, Cursor, or any agent that can run shell, and paste this prompt. It does two passes: **install + adapt**, then **audit the setup** (package manager, AGENTS.md quality, docs scaffolding, feedback loop) and propose fixes one at a time.
 
 ````markdown
 Install the clanker skill pack from https://github.com/alexopotto/clanker-template
-into this repository. Adapt the skills to my stack and conventions BEFORE copying
-them in. Follow these steps exactly and ask before any destructive action.
+into this repository, then audit my setup so the agent feedback loops actually work.
+Adapt the skills to my stack and conventions BEFORE copying them in. Follow these
+steps exactly and ask before any destructive action.
+
+## Phase 1 — Install & adapt
 
 1. Shallow-clone into a temp dir:
    git clone --depth 1 https://github.com/alexopotto/clanker-template /tmp/clanker-install
@@ -132,14 +135,62 @@ them in. Follow these steps exactly and ask before any destructive action.
 
 8. Delete /tmp/clanker-install.
 
-9. Report: detected stack, detected commit convention, which skills were
-   copied, which were stripped or modified and why, and any AGENTS.md
-   mismatches I need to resolve before running `/clanker`.
+## Phase 2 — Audit the setup
+
+Now look at what's already here and find anything that will make the agent
+loops unreliable. Collect findings first, then walk through them with me one
+at a time — for each finding: state the problem, propose the fix, wait for my
+go-ahead before editing. Do not auto-fix.
+
+Check each of these dimensions:
+
+A. **Package manager consistency** (one PM, used everywhere)
+   - More than one lockfile present? (e.g. `pnpm-lock.yaml` and `package-lock.json`
+     both exist — pick one, propose deleting the others.)
+   - `packageManager` field in `package.json` missing or disagreeing with the lockfile?
+   - Scripts in `package.json` invoke a different PM than the lockfile implies
+     (e.g. `"test": "npm run ..."` in a pnpm repo)?
+   - README / AGENTS.md / CI workflows reference a PM that doesn't match the lockfile?
+
+B. **Feedback loop sanity** (the gate must actually exist and exit 0)
+   - Does the verify command from AGENTS.md exist as a script in `package.json`?
+   - Run it. Does it exit 0 on a clean tree? If not, capture the first failing
+     step (typecheck / lint / unit) — that's the loop the agent will get stuck on.
+   - Do unit tests exist at all? Run the test command and confirm the runner
+     finds and executes at least one test. **Zero tests is a critical finding** —
+     the ralph skill's red→green loop has nothing to drive against.
+   - E2E missing is a **warning, not a blocker** — clanker can still ship slices
+     without it, just without the qa phase.
+   - If there is no feedback loop whatsoever (no verify, no tests, no typecheck),
+     flag this as the highest-priority finding. Propose the minimum viable loop
+     for the detected stack (e.g. `tsc --noEmit && <linter> && <test runner>`).
+
+C. **AGENTS.md / CLAUDE.md quality**
+   - Any `<placeholder>` text still unfilled in the Stack or Commands sections?
+   - Do the commands listed actually exist as scripts in `package.json`?
+   - Does the Stack line match what the manifest says (framework, test runner,
+     PM)? Flag every mismatch.
+   - Are the Hard Rules still the generic defaults, or has the user customized
+     them? (Don't propose changes here — just note whether they look reviewed.)
+
+D. **Docs scaffolding** (referenced by AGENTS.md → must exist or be stubbed)
+   - For each of `docs/architecture.md`, `docs/conventions.md`, `docs/testing.md`,
+     `docs/quality-pipeline.md`: does the file exist? If not, propose creating a
+     short stub (one heading + a one-line "fill this in" placeholder) so the
+     AGENTS.md links don't 404. Ask before creating each.
+
+## Phase 3 — Report
+
+After Phase 1 and Phase 2 walk-throughs, give me a final summary:
+- Detected stack and commit convention.
+- Which skills were copied, which were stripped/modified and why.
+- Every audit finding (A–D), what was fixed, what was deferred, what I declined.
+- The single most important thing left for me to do before running `/clanker`.
 
 Do not modify any other files. Do not edit my AGENTS.md without asking.
 ````
 
-The agent will halt before overwriting anything and surface stack mismatches you need to resolve.
+The agent will halt before overwriting anything, surface stack mismatches, and walk you through setup gaps one at a time before you run `/clanker`.
 
 **Option B — Clone the whole template.**
 ```sh
