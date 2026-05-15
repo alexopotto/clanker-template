@@ -67,16 +67,59 @@ The skills live under `.agents/skills/` (the convention Codex / VS Code Copilot 
 
 ---
 
-## How to use this as a starter
+## How to install
 
-**Option A — Clone and build on top.**
+**Option A — Ask your AI agent to install it (recommended).**
+
+Open your project in Claude Code, Codex, Copilot, Cursor, or any agent that can run shell, and paste this prompt:
+
+````markdown
+Install the clanker skill pack from https://github.com/alexopotto/clanker-template
+into this repository. Follow these steps exactly and ask before any destructive action.
+
+1. Shallow-clone into a temp dir:
+   git clone --depth 1 https://github.com/alexopotto/clanker-template /tmp/clanker-install
+
+2. Detect which agent you are by the path conventions you read from:
+   - `.claude/skills/` → Claude Code
+   - `.agents/skills/` → Codex / Copilot / Cursor / other
+   Skills get copied to `.agents/skills/` either way (it's the cross-agent path);
+   only the Claude Code symlink differs.
+
+3. Compatibility check — read the **target** repo's AGENTS.md (or CLAUDE.md) if
+   present. Compare against the assumptions baked into the cloned skills
+   (pnpm, Vitest, Playwright, Vue 3 layout — grep them in
+   /tmp/clanker-install/.agents/skills/). List any mismatches (package
+   manager, test runner, e2e tool) and tell me before copying. If no
+   AGENTS.md exists in the target, copy /tmp/clanker-install/AGENTS.md over
+   and flag it as "needs filling in".
+
+4. Copy `/tmp/clanker-install/.agents/` into the current repo root. If
+   `.agents/` already exists, list overlapping files and ask before
+   overwriting any of them.
+
+5. If I'm using Claude Code, create the symlink:
+   mkdir -p .claude && ln -s ../.agents/skills .claude/skills
+   (skip if `.claude/skills` already exists, or if I'm not on Claude Code.)
+
+6. Delete /tmp/clanker-install.
+
+7. Report: which skills were copied, which path the agent will read them from,
+   and any AGENTS.md mismatches I need to resolve before running `/clanker`.
+
+Do not modify any other files. Do not edit my AGENTS.md without asking.
+````
+
+The agent will halt before overwriting anything and surface stack mismatches you need to resolve.
+
+**Option B — Clone the whole template.**
 ```sh
-git clone <this-repo> my-new-project
+git clone https://github.com/alexopotto/clanker-template my-new-project
 cd my-new-project
 # edit AGENTS.md for your stack, then start writing PRDs
 ```
 
-**Option B — Copy the skills into an existing repo.**
+**Option C — Copy the skills manually.**
 ```sh
 cd existing-repo
 cp -R /path/to/clanker-template/.agents .
