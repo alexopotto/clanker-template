@@ -63,7 +63,7 @@ The framework is harness-agnostic but assumes these primitives exist:
 - **File read/write + shell** — agents can read/write markdown, run shell commands, and execute `git` / `gh`.
 - **A user-question primitive** for pre-flight (branch name, harness hint). Falls back to chat if your harness lacks one.
 
-Tested on Claude Code. The skills themselves contain no Claude-specific assumptions beyond the file paths — adopters on other harnesses (Codex, Copilot, Cursor, etc.) may need to adjust the `.claude/skills/` path references and the dispatch primitive.
+Tested with VS Code Copilot. The skills themselves contain no Claude-specific assumptions beyond the file paths — adopters on other harnesses (Claude Code, Codex, Cursor, etc.) may need to adjust the `.claude/skills/` path references and the dispatch primitive.
 
 ---
 
