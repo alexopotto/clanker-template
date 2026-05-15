@@ -75,7 +75,8 @@ Open your project in Claude Code, Codex, Copilot, Cursor, or any agent that can 
 
 ````markdown
 Install the clanker skill pack from https://github.com/alexopotto/clanker-template
-into this repository. Follow these steps exactly and ask before any destructive action.
+into this repository. Adapt the skills to my stack and conventions BEFORE copying
+them in. Follow these steps exactly and ask before any destructive action.
 
 1. Shallow-clone into a temp dir:
    git clone --depth 1 https://github.com/alexopotto/clanker-template /tmp/clanker-install
@@ -83,29 +84,57 @@ into this repository. Follow these steps exactly and ask before any destructive 
 2. Detect which agent you are by the path conventions you read from:
    - `.claude/skills/` → Claude Code
    - `.agents/skills/` → Codex / Copilot / Cursor / other
-   Skills get copied to `.agents/skills/` either way (it's the cross-agent path);
+   Skills get copied to `.agents/skills/` either way (cross-agent path);
    only the Claude Code symlink differs.
 
-3. Compatibility check — read the **target** repo's AGENTS.md (or CLAUDE.md) if
-   present. Compare against the assumptions baked into the cloned skills
-   (pnpm, Vitest, Playwright, Vue 3 layout — grep them in
-   /tmp/clanker-install/.agents/skills/). List any mismatches (package
-   manager, test runner, e2e tool) and tell me before copying. If no
-   AGENTS.md exists in the target, copy /tmp/clanker-install/AGENTS.md over
-   and flag it as "needs filling in".
+3. Inspect the target repo to learn its stack and conventions:
+   - Package manager: which lockfile exists (`pnpm-lock.yaml` / `package-lock.json`
+     / `yarn.lock` / `bun.lock`).
+   - Unit test runner: devDependencies in `package.json` (vitest / jest / bun test
+     / mocha / none).
+   - E2E tool: devDependencies (playwright / cypress / none).
+   - Linter: devDependencies (oxlint / eslint / biome / none).
+   - Verify command: scripts in `package.json` (look for `verify`, `lint`,
+     `typecheck`, `test`).
+   - Framework: devDependencies (vue / react / svelte / none).
+   - Commit convention: run `git log --pretty=%s -50` and classify the style as
+     conventional commits (`type(scope): subject`), ticket-prefixed
+     (`JIRA-123:`), or freeform.
 
-4. Copy `/tmp/clanker-install/.agents/` into the current repo root. If
-   `.agents/` already exists, list overlapping files and ask before
-   overwriting any of them.
+4. Read the target's AGENTS.md / CLAUDE.md if present. If AGENTS.md says one
+   thing and the manifest says another, trust the manifest and flag the
+   conflict for me. If no AGENTS.md exists, copy
+   `/tmp/clanker-install/AGENTS.md` over and tell me it needs filling in.
 
-5. If I'm using Claude Code, create the symlink:
+5. Adapt the skills in `/tmp/clanker-install/.agents/skills/` **before**
+   copying — they should reference only tools that exist in my repo:
+   - Find-and-replace baked-in commands across all skill files:
+     `pnpm verify` → my verify command, `pnpm test:e2e` → my e2e command,
+     `pnpm test` → my unit-test command, `oxlint` → my linter, `pnpm` →
+     my package manager, `vitest` / `playwright` → my equivalents.
+   - **If no e2e tool exists:** delete the `qa/` skill folder and remove
+     the QA phase from the `clanker/` orchestrator skill. Tell me what
+     you stripped.
+   - **If no unit test runner exists:** replace the verify step in the
+     `ralph/` skill with a `# manual gate — replace with your verify command`
+     placeholder. Tell me.
+   - **If commits follow conventional-commits style:** append one line to
+     the `ralph/` skill's commit step telling it to use `<type>: <subject>`
+     prefixes. Otherwise leave the commit style freeform.
+
+6. Copy the adapted `/tmp/clanker-install/.agents/` into the current repo
+   root. If `.agents/` already exists, list overlapping files and ask
+   before overwriting.
+
+7. If I'm using Claude Code, create the symlink:
    mkdir -p .claude && ln -s ../.agents/skills .claude/skills
    (skip if `.claude/skills` already exists, or if I'm not on Claude Code.)
 
-6. Delete /tmp/clanker-install.
+8. Delete /tmp/clanker-install.
 
-7. Report: which skills were copied, which path the agent will read them from,
-   and any AGENTS.md mismatches I need to resolve before running `/clanker`.
+9. Report: detected stack, detected commit convention, which skills were
+   copied, which were stripped or modified and why, and any AGENTS.md
+   mismatches I need to resolve before running `/clanker`.
 
 Do not modify any other files. Do not edit my AGENTS.md without asking.
 ````
