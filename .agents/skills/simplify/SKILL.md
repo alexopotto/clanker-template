@@ -33,13 +33,13 @@ Stale-note guard: ignore any heading whose ticket slug refers to a file that is 
 
 ## What to look for (in order)
 
-1. **`any` and untyped escapes** — replace with the real type. If unknown, narrow with `unknown` + a type guard.
+1. **Unchecked type escapes** — replace with the real type or language-appropriate safe boundary. If unknown, narrow explicitly instead of suppressing the checker.
 2. **Dead code** — unused exports, unreachable branches, commented-out blocks. Delete.
 3. **Duplication** — same shape repeated 2+ times → extract a composable, util, or component.
 4. **Primitive obsession** — three loose strings always passed together → a typed object.
 5. **Long files / long functions** — split by responsibility, not by line count.
 6. **Inconsistent naming** — pick one term, propagate. Verbs for actions, nouns for state.
-7. **Implicit shared state** — module-level mutable singletons that should be a Pinia store or composable.
+7. **Implicit shared state** — module-level mutable singletons or global state that should live in the project's documented state-management boundary.
 
 ## Workflow
 
@@ -48,11 +48,7 @@ For each pass — repeat until no offenders remain:
 1. `git status` — confirm clean working tree.
 2. Pick **one** offender. Apply category ordering from the list above (any → dead → dup → ...). Among ties **within the same category**, prefer offenders flagged in `.clanker/simplify-notes.md`. When you commit a fix that resolves a note, tick its checkbox in place (`- [ ]` → `- [x]`). When you decide a note belongs in `Spotted but skipped:`, leave it unticked and add a reason in the output block.
 3. Make the **smallest** change that removes it. No drive-by edits.
-4. Run backpressure:
-   - `pnpm lint`
-   - `pnpm type-check`
-   - `pnpm test:unit --run`
-   - (e2e only if you touched component behaviour boundaries)
+4. Run backpressure: the repository's documented verify command, plus targeted e2e/smoke checks if you touched behaviour boundaries.
 5. **If any check fails**: revert, rethink, do not commit a broken state.
 6. **If all green**: commit with `refactor(<scope>): <what you removed>`. Example: `refactor(booking): extract useBookingDraft composable`.
 7. Loop.
@@ -62,7 +58,7 @@ STOP after ~8 commits even if more offenders remain. Diminishing returns plus re
 ## Hard rules
 
 - CRITICAL: **Do not change behaviour.** If a test starts failing, your refactor was not a refactor. Revert.
-- CRITICAL: **Do not bypass type-check.** No new `any`, `// @ts-expect-error`, or `as unknown as T`. If the underlying API genuinely requires one (rare), keep it in a *single* boundary file, narrow as soon as possible, and note it in the output.
+- CRITICAL: **Do not bypass type-checking or compiler checks.** No new unchecked casts, broad dynamic escapes, or suppressions. If an underlying API genuinely requires one, keep it in a single boundary file, narrow as soon as possible, and note it in the output.
 - CRITICAL: **Do not delete tests.** If a test seems redundant, that is the reviewer's call, not yours.
 - IMPORTANT: One offender per commit.
 - IMPORTANT: Branch scope only.

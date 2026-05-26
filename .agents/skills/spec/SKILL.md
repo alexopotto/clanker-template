@@ -22,7 +22,7 @@ Take a vague feature topic from the user and produce a PRD that is small enough 
 ## Inputs
 
 - The topic — either a sentence from the user, or the prompt passed by the orchestrator. If empty, the first question must be "what are we building?"
-- Project facts (do not re-ask): Vue 3 + Vite + Pinia + Vue Router app. Vitest for unit tests, Playwright for e2e. Package manager **pnpm**.
+- Project facts (do not re-ask): read `AGENTS.md` and the relevant `docs/*.md` files for stack, package manager, test layout, architecture, terminology, and quality gates. If those docs are unset or contradict the manifest/build files, ask one setup clarification before writing a PRD that depends on stack details.
 
 ## Workflow
 

@@ -21,8 +21,8 @@ Pass through `gh pr create --body` via HEREDOC. Substitute placeholders; keep se
 - <commit subjects from simplify>
 
 ## Test plan for reviewer
-- [ ] Pull the branch, run `pnpm dev`, click through the happy path
-- [ ] Run `pnpm test:unit --run && pnpm test:e2e`
+- [ ] Pull the branch and run the documented local app/service command from `AGENTS.md`
+- [ ] Run the documented verify command and any e2e/smoke command from `AGENTS.md`
 - [ ] Open the screenshots in `qa/screenshots/` and confirm they match expectations
 - [ ] <feature-specific check>
 

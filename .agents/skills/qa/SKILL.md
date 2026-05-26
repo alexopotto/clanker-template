@@ -1,34 +1,39 @@
 ---
 name: qa
-description: Drives the live dev server through one happy + two negative paths via Playwright, screenshots every state, writes qa/<slug>.md with PASS/FAIL summary and PR posture (ready or draft). Use after slices are implemented, when invoked as Phase 5 of the clanker pipeline, or when the user types /qa.
+description: Drives the implemented feature through one happy + two negative paths using the repo's documented QA mode, captures evidence, writes qa/<slug>.md with PASS/FAIL summary and PR posture (ready or draft). Use after slices are implemented, when invoked as Phase 5 of the clanker pipeline, or when the user types /qa.
 ---
 
 # qa — Phase 5 (AFK): Agentic QA
 
 ## Purpose
 
-Unit tests prove the code works. Only a real browser session proves a user can finish the flow. This skill generates targeted Playwright tests, runs them against the live dev server, screenshots every state, and writes a markdown report a human can scan in two minutes.
+Automated tests prove pieces of the code work. QA proves the implemented feature works through the repository's documented user-facing or integration path. This skill runs the documented QA mode, captures evidence where possible, and writes a markdown report a human can scan in two minutes.
 
 ## Core principles
 
-- **Real browser, real server.** Drive `pnpm dev`, not a mocked harness.
-- **Accessible selectors.** `getByRole`, `getByLabel`, `getByText`. Brittle CSS selectors mean the report ages badly.
-- **One happy + two negatives.** Pick the two most likely failure modes (bad input, network/server failure, declined action, etc.). Resist the urge to test everything — that's what Vitest is for.
+- **Real target.** Use the repo's documented QA mode: browser e2e, API smoke, CLI smoke, service integration test, or manual-disabled mode.
+- **Stable interactions.** Prefer accessible selectors for UI, public API contracts for services, and documented CLI flags/fixtures for command-line tools.
+- **One happy + two negatives.** Pick the two most likely failure modes (bad input, network/server failure, declined action, etc.). Resist the urge to test everything — that's what lower-level tests are for.
 - **Report what happened, do not patch.** If QA fails, the report says so. Do not silently fix product code from this skill.
 
 ## Inputs
 
 - A feature slug. If empty, derive from `git branch --show-current`.
-- Identify the entry URL — default `http://localhost:5173/`. If the feature has a sub-route, navigate there.
+- The QA mode, target command, and entry point from `AGENTS.md`, `docs/testing.md`, and `docs/quality-pipeline.md`.
 
 ## Workflow
 
-### Step 1 — Boot the dev server
+### Step 1 — Identify the QA mode
 
-Check reachability: `curl -sf http://localhost:5173 -o /dev/null && echo up || echo down`.
+Read the project docs and select one mode:
 
-- If `down`: start `pnpm dev` in the background. Poll the URL every 2s for up to 30s. If still down, STOP and return a blocked report.
-- If `up`: continue.
+- **Browser e2e** — start the documented local app/service command, wait for the documented URL, and drive the feature in a browser.
+- **API smoke** — start the documented service command, wait for the health endpoint, and exercise public endpoints with test data.
+- **CLI smoke** — run the documented CLI command against fixtures or a temp workspace.
+- **Library/package** — run documented integration examples or smoke tests that exercise the public API.
+- **QA disabled** — if docs explicitly say no e2e/smoke mode exists, write a report with `PR posture: draft`, explain the missing QA loop, and skip test generation.
+
+If the required command, URL, health check, or fixture is missing, STOP and return a blocked report that names the missing setup detail.
 
 ### Step 2 — Pick three flows
 
@@ -39,20 +44,20 @@ Read the PRD (`docs/prd-*.md`) and slice tickets (`docs/tickets/`) to ground you
 
 Example for a form submission feature: happy (valid submit) + negative (invalid email format) + negative (network timeout on POST). State the three chosen flows in the report before writing tests.
 
-### Step 3 — Write Playwright tests
+### Step 3 — Write or run QA checks
 
-Write `e2e/qa-<slug>.spec.ts`. Each test:
+For browser e2e projects, write the test in the documented e2e location using the repository's naming convention. Each test:
 
 - Navigates to the feature.
-- Drives the UI step by step using accessible selectors.
-- Screenshots every meaningful state: `await page.screenshot({ path: 'qa/screenshots/<slug>-<flow>-<step>.png' })`.
+- Drives the UI step by step using stable selectors.
+- Screenshots every meaningful state into `qa/screenshots/` when the test tool supports screenshots.
 - Asserts an observable outcome (URL, visible text, error message).
 
-Use `test.describe('<feature> — QA', () => { ... })` to group.
+For API, CLI, service, or library projects, create the smallest repo-conventional smoke/integration check if the project has a place for such checks; otherwise run the documented command manually and record exact commands, inputs, outputs, and evidence in the report.
 
 ### Step 4 — Run them
 
-`pnpm test:e2e e2e/qa-<slug>.spec.ts`. Capture pass/fail per test. Do not retry to "smooth out" a flake — flaky tests are a finding.
+Run the documented e2e/smoke command, narrowed to the QA check when the tool supports it. Capture pass/fail per flow. Do not retry to "smooth out" a flake — flaky tests are a finding.
 
 ### Step 5 — Write the report
 
@@ -62,7 +67,8 @@ Write `qa/<slug>.md`:
 # QA Report: <Feature>
 
 Run: <ISO date> · Branch: <branch> · Commit: <short sha>
-Server: http://localhost:5173
+Mode: browser e2e | API smoke | CLI smoke | library smoke | QA disabled
+Target: <URL, command, fixture, or "none">
 
 ## Flow 1 — Happy path: <name>
 - Steps:
@@ -72,7 +78,7 @@ Server: http://localhost:5173
 - Result: PASS | FAIL
 - Screenshots:
   - qa/screenshots/<slug>-happy-1.png
-  - qa/screenshots/<slug>-happy-2.png
+  - <or command output / response excerpt / log path>
 
 ## Flow 2 — Negative: <name>
 - Steps: …
@@ -97,10 +103,11 @@ The next phase (`review`) requires a clean working tree. QA owns its own outputs
 
 1. Stage with an explicit allowlist — never `git add -A` / `.`:
    ```
-   git add qa/<slug>.md "qa/screenshots/<slug>-"*.png e2e/qa-<slug>.spec.ts
+   git add qa/<slug>.md "qa/screenshots/<slug>-"*.png
+   git add <exact QA test/check path you created>
    ```
-   Globs that match nothing are fine; `git add` silently no-ops on misses.
-2. Verify the staged set: `git diff --cached --name-only`. If any staged path is **not** under `qa/` and not `e2e/qa-<slug>.spec.ts` → run `git reset` and STOP with `BLOCKED: qa staged unexpected paths: <list>`.
+   Skip the second command if no QA test/check file was created. Globs that match nothing are fine; `git add` silently no-ops on misses.
+2. Verify the staged set: `git diff --cached --name-only`. If any staged path is **not** under `qa/` and is not the QA test/check file you created → run `git reset` and STOP with `BLOCKED: qa staged unexpected paths: <list>`.
 3. If `git diff --cached --quiet` (nothing staged — e.g. no screenshots produced) → skip the commit silently. Record `Committed: none`.
 4. Otherwise commit: `git commit -m "test(<slug>): qa report and screenshots"`. Record `Committed: <git rev-parse --short HEAD>`.
 5. If a pre-commit hook fails, surface `BLOCKED: pre-commit hook failed during qa commit — <hook output>`. **Never** `--no-verify`.
@@ -108,9 +115,9 @@ The next phase (`review`) requires a clean working tree. QA owns its own outputs
 ## Hard rules
 
 - CRITICAL: **Do not change product code from this skill.** If you spot a bug, write it in "Reviewer should look at" — do not patch.
-- CRITICAL: **QA MAY commit its own artifacts** (`qa/**`, `e2e/qa-<slug>.spec.ts`). **MUST NOT** stage anything else. Use an explicit `git add` allowlist; never `-A` / `.`. The Step 6 staged-paths check is the enforcement gate — if it trips, abort.
+- CRITICAL: **QA MAY commit its own artifacts** (`qa/**` plus the exact QA test/check file it created). **MUST NOT** stage anything else. Use an explicit `git add` allowlist; never `-A` / `.`. The Step 6 staged-paths check is the enforcement gate — if it trips, abort.
 - CRITICAL: **Do not delete or skip a failing test** to make the report green. A failing flow is the whole point of running this.
-- IMPORTANT: Accessible selectors only.
+- IMPORTANT: Use stable, user-facing selectors/contracts/fixtures.
 - IMPORTANT: Mark the run as **DRAFT** in the summary if any flow failed — the orchestrator will open the PR as a draft.
 - Do not navigate the public internet from a QA test. Stay on `localhost`.
 
@@ -120,8 +127,8 @@ The next phase (`review`) requires a clean working tree. QA owns its own outputs
 Report: qa/<slug>.md
 Happy: PASS | FAIL
 Negatives: PASS | FAIL · PASS | FAIL
-Tests written: e2e/qa-<slug>.spec.ts
-Screenshots: qa/screenshots/<slug>-*.png (<count>)
+Tests/checks written: <path> | none
+Evidence: qa/screenshots/<slug>-*.png (<count>) | command output | response excerpts | logs | none
 Committed: <short sha> | none
 PR posture: ready | draft
 ```

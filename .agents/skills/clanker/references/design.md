@@ -6,7 +6,7 @@ Background reading for humans editing the orchestrator. The runtime does **not**
 
 ```mermaid
 flowchart TD
-    PF[Pre-flight<br/>INLINE · git/pnpm/gh · baseline · context]
+    PF[Pre-flight<br/>INLINE · git/project commands/gh · baseline · context]
     P1[Phase 1 — slice<br/>SUBAGENT]
     P2{Phase 2 — ralph<br/>per-ticket loop}
     R1[ralph ticket 01<br/>SUBAGENT]

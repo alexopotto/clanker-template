@@ -31,17 +31,12 @@ For the ticket file you picked, run this loop until every `- [ ]` is `- [x]` or 
 1. **Read the ticket fresh.** Treat the previous iteration's working state as discarded. The ticket file is the only source of truth.
 2. **Pick the first unchecked task** (`- [ ]`).
 3. **RED** — write the failing test that proves the task's behaviour.
-   - Behavioural / UI tests → Playwright under `e2e/`. Run with `pnpm test:e2e e2e/<slug>.spec.ts`.
-   - Logic / store / composable tests → Vitest under `src/__tests__/` or co-located. Run with `pnpm test:unit --run <path>`.
+   - Put the test in the repository's documented test location from `AGENTS.md` / `docs/testing.md`.
+   - Use the documented unit, integration, e2e, smoke, or language-specific test command for the behaviour under test.
    - CRITICAL: confirm the test **fails for the right reason**. "Failed because the file doesn't exist yet" counts. "Failed because of a typo in the assertion" does not.
 4. **GREEN** — write the minimum code to pass that one test. No bonus features. No "while I'm in here."
 5. **REFACTOR** — with tests still green, do **in-slice** cleanup only: extract one composable, rename one symbol, kill one duplication you just created. STOP before refactoring anything outside the slice.
-6. **Backpressure** — run:
-   - `pnpm lint`
-   - `pnpm type-check`
-   - `pnpm test:unit --run`
-   - any e2e tests already authored
-   Fix what trips before committing.
+6. **Backpressure** — run the repository's documented verify command. If the verify command is unset, run the smallest documented equivalent set of checks from `docs/quality-pipeline.md` (for example lint/typecheck/unit tests, compiler checks, or language-specific test suites). Also run any targeted e2e/smoke tests you authored for this ticket. Fix what trips before committing.
 7. **Commit** — conventional commit, scoped to the slice. Example: `feat(booking): add guest-info form (slice 01)`. One iteration = one commit.
 8. **Tick the box** — flip `- [ ]` to `- [x]` in the ticket file. Commit this edit with the same message or as a `chore` follow-up.
 9. **Loop** back to step 1.
@@ -58,7 +53,7 @@ For the ticket file you picked, run this loop until every `- [ ]` is `- [x]` or 
 - CRITICAL: **Never `--no-verify`** a commit, **never `git push --force`**, **never `git reset --hard`** to escape a stuck state. Surface the blocker instead.
 - IMPORTANT: One box per iteration. One iteration per commit.
 - IMPORTANT: Do not change behaviour outside this slice's scope. Out-of-scope refactors get logged as a note for Phase 4.
-- IMPORTANT: If type-check fails, fix the type. Do not add `any`, `// @ts-expect-error`, or `as unknown as T` to silence it.
+- IMPORTANT: If a type checker or compiler fails, fix the type. Do not add unchecked casts, suppressions, or broad dynamic escapes to silence it.
 
 ## Notes for simplify (on-disk handoff)
 

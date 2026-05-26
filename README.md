@@ -40,17 +40,22 @@ CLAUDE.md                        symlink to AGENTS.md (so Claude Code finds it)
 ## Quickstart
 
 1. **Adapt `AGENTS.md`** to your stack. Fill in:
-   - Your package manager (`pnpm` / `npm` / `bun` / `yarn`)
-   - Your verify command (the one that runs type-check + lint + tests)
-   - Your test runner (Vitest / Jest / Bun test / etc.)
-   - Your e2e tool (Playwright / Cypress / etc.)
-2. **Grep the skills for stack-specific commands.** The skills currently reference `pnpm verify`, `pnpm test:e2e`, `oxlint`, and a Vue 3 project layout. Find-and-replace:
+   - Your package/build tool (`npm`, `pnpm`, `Maven`, `Gradle`, `uv`, etc.)
+   - Your install, dev, verify, test, e2e/smoke, and build commands
+   - Your test layout and QA mode
+2. **Fill in the setup docs.** Start with:
+   - `docs/agent-setup.md`
+   - `docs/architecture.md`
+   - `docs/conventions.md`
+   - `docs/testing.md`
+   - `docs/quality-pipeline.md`
+3. **Run the agent setup doctor:**
    ```sh
-   grep -rn "pnpm verify\|pnpm test\|oxlint\|vitest\|playwright" .agents/skills/
+   scripts/agent-doctor.sh
    ```
-   Replace with your stack's equivalent. If your team also uses pnpm + Vitest + Playwright, you mostly don't need to change anything.
-3. **Write your first PRD.** Either invoke `/spec` (interview-driven) or hand-write a markdown file under `specs/`.
-4. **Run the pipeline:** `/clanker specs/<your-prd>.md`
+   Fix every failure and review warnings before running the pipeline.
+4. **Write your first PRD.** Either invoke `/spec` (interview-driven) or hand-write a markdown file under `specs/`.
+5. **Run the pipeline:** `/clanker specs/<your-prd>.md`
 
 ---
 
@@ -71,15 +76,15 @@ The skills live under `.agents/skills/` (the convention Codex / VS Code Copilot 
 
 **Option A — Ask your AI agent to install it (recommended).**
 
-Open your project in Claude Code, Codex, Copilot, Cursor, or any agent that can run shell, and paste this prompt. It does two passes: **install + adapt**, then **audit the setup** (package manager, AGENTS.md quality, docs scaffolding, feedback loop) and propose fixes one at a time.
+Open your project in Claude Code, Codex, Copilot, Cursor, or any agent that can run shell, and paste this prompt. It does two passes: **install + document the command contract**, then **audit the setup** (package manager/build tool, AGENTS.md quality, docs scaffolding, feedback loop) and propose fixes one at a time.
 
 ````markdown
 Install the clanker skill pack from https://github.com/alexopotto/clanker-template
 into this repository, then audit my setup so the agent feedback loops actually work.
-Adapt the skills to my stack and conventions BEFORE copying them in. Follow these
-steps exactly and ask before any destructive action.
+Install the stack-agnostic skills, then adapt AGENTS.md and docs to my stack and
+conventions. Follow these steps exactly and ask before any destructive action.
 
-## Phase 1 — Install & adapt
+## Phase 1 — Install & document
 
 1. Shallow-clone into a temp dir:
    git clone --depth 1 https://github.com/alexopotto/clanker-template /tmp/clanker-install
@@ -91,15 +96,16 @@ steps exactly and ask before any destructive action.
    only the Claude Code symlink differs.
 
 3. Inspect the target repo to learn its stack and conventions:
-   - Package manager: which lockfile exists (`pnpm-lock.yaml` / `package-lock.json`
-     / `yarn.lock` / `bun.lock`).
-   - Unit test runner: devDependencies in `package.json` (vitest / jest / bun test
-     / mocha / none).
-   - E2E tool: devDependencies (playwright / cypress / none).
-   - Linter: devDependencies (oxlint / eslint / biome / none).
-   - Verify command: scripts in `package.json` (look for `verify`, `lint`,
-     `typecheck`, `test`).
-   - Framework: devDependencies (vue / react / svelte / none).
+   - Package/build tool: lockfiles and manifests (`package-lock.json`,
+     `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `pom.xml`, `build.gradle`,
+     `pyproject.toml`, `requirements.txt`, `go.mod`, etc.).
+   - Unit/integration test runner: manifest dependencies, build plugins, or
+     existing test commands.
+   - E2E/smoke tool: browser e2e, API smoke, CLI smoke, library examples, or none.
+   - Linter/formatter/type checker/compiler checks.
+   - Verify command: manifest scripts, Makefile targets, CI workflows, or the
+     smallest existing command that combines compile/lint/test.
+   - Framework/runtime: detected from manifests and source layout.
    - Commit convention: run `git log --pretty=%s -50` and classify the style as
      conventional commits (`type(scope): subject`), ticket-prefixed
      (`JIRA-123:`), or freeform.
@@ -109,23 +115,19 @@ steps exactly and ask before any destructive action.
    conflict for me. If no AGENTS.md exists, copy
    `/tmp/clanker-install/AGENTS.md` over and tell me it needs filling in.
 
-5. Adapt the skills in `/tmp/clanker-install/.agents/skills/` **before**
-   copying — they should reference only tools that exist in my repo:
-   - Find-and-replace baked-in commands across all skill files:
-     `pnpm verify` → my verify command, `pnpm test:e2e` → my e2e command,
-     `pnpm test` → my unit-test command, `oxlint` → my linter, `pnpm` →
-     my package manager, `vitest` / `playwright` → my equivalents.
-   - **If no e2e tool exists:** delete the `qa/` skill folder and remove
-     the QA phase from the `clanker/` orchestrator skill. Tell me what
-     you stripped.
-   - **If no unit test runner exists:** replace the verify step in the
-     `ralph/` skill with a `# manual gate — replace with your verify command`
-     placeholder. Tell me.
-   - **If commits follow conventional-commits style:** append one line to
-     the `ralph/` skill's commit step telling it to use `<type>: <subject>`
-     prefixes. Otherwise leave the commit style freeform.
+5. Copy or update the setup docs from `/tmp/clanker-install/docs/`:
+   - Ensure `docs/agent-setup.md`, `docs/architecture.md`,
+     `docs/conventions.md`, `docs/testing.md`, and
+     `docs/quality-pipeline.md` exist.
+   - If a file already exists, do not overwrite it without asking.
+   - Fill in the command contract in AGENTS.md and document the QA mode in
+     `docs/testing.md` or `docs/quality-pipeline.md`.
+   - If no e2e/smoke loop exists, document `QA disabled` with the reason instead
+     of deleting the `qa/` skill.
+   - If no unit test runner exists, document the missing feedback loop as the
+     highest-priority setup gap.
 
-6. Copy the adapted `/tmp/clanker-install/.agents/` into the current repo
+6. Copy `/tmp/clanker-install/.agents/` and `/tmp/clanker-install/scripts/` into the current repo
    root. If `.agents/` already exists, list overlapping files and ask
    before overwriting.
 
@@ -144,47 +146,51 @@ go-ahead before editing. Do not auto-fix.
 
 Check each of these dimensions:
 
-A. **Package manager consistency** (one PM, used everywhere)
+A. **Package/build tool consistency** (one toolchain path, used everywhere)
    - More than one lockfile present? (e.g. `pnpm-lock.yaml` and `package-lock.json`
      both exist — pick one, propose deleting the others.)
    - `packageManager` field in `package.json` missing or disagreeing with the lockfile?
-   - Scripts in `package.json` invoke a different PM than the lockfile implies
-     (e.g. `"test": "npm run ..."` in a pnpm repo)?
-   - README / AGENTS.md / CI workflows reference a PM that doesn't match the lockfile?
+   - Scripts or Makefile/CI targets invoke a different tool than the manifest implies?
+   - README / AGENTS.md / CI workflows reference a tool that doesn't match the detected stack?
 
 B. **Feedback loop sanity** (the gate must actually exist and exit 0)
-   - Does the verify command from AGENTS.md exist as a script in `package.json`?
+   - Does the verify command from AGENTS.md exist as a script, target, or executable command?
    - Run it. Does it exit 0 on a clean tree? If not, capture the first failing
      step (typecheck / lint / unit) — that's the loop the agent will get stuck on.
    - Do unit tests exist at all? Run the test command and confirm the runner
      finds and executes at least one test. **Zero tests is a critical finding** —
      the ralph skill's red→green loop has nothing to drive against.
-   - E2E missing is a **warning, not a blocker** — clanker can still ship slices
-     without it, just without the qa phase.
+   - E2E/smoke missing is a **warning, not a blocker** if documented as
+     `QA disabled`; otherwise it is an AGENTS.md/docs gap.
    - If there is no feedback loop whatsoever (no verify, no tests, no typecheck),
      flag this as the highest-priority finding. Propose the minimum viable loop
      for the detected stack (e.g. `tsc --noEmit && <linter> && <test runner>`).
 
 C. **AGENTS.md / CLAUDE.md quality**
-   - Any `<placeholder>` text still unfilled in the Stack or Commands sections?
-   - Do the commands listed actually exist as scripts in `package.json`?
+   - Any `unset` or placeholder text still unfilled in the Stack or Commands sections?
+   - Do the commands listed actually exist as scripts, targets, or executable commands?
    - Does the Stack line match what the manifest says (framework, test runner,
      PM)? Flag every mismatch.
    - Are the Hard Rules still the generic defaults, or has the user customized
      them? (Don't propose changes here — just note whether they look reviewed.)
 
 D. **Docs scaffolding** (referenced by AGENTS.md → must exist or be stubbed)
-   - For each of `docs/architecture.md`, `docs/conventions.md`, `docs/testing.md`,
+   - For each of `docs/agent-setup.md`, `docs/architecture.md`,
+     `docs/conventions.md`, `docs/testing.md`, and
      `docs/quality-pipeline.md`: does the file exist? If not, propose creating a
-     short stub (one heading + a one-line "fill this in" placeholder) so the
-     AGENTS.md links don't 404. Ask before creating each.
+     short stub so the AGENTS.md links don't 404. Ask before creating each.
+
+E. **Doctor check**
+   - Run `scripts/agent-doctor.sh`.
+   - Treat failures as setup blockers.
+   - Review warnings with me one at a time.
 
 ## Phase 3 — Report
 
 After Phase 1 and Phase 2 walk-throughs, give me a final summary:
 - Detected stack and commit convention.
 - Which skills were copied, which were stripped/modified and why.
-- Every audit finding (A–D), what was fixed, what was deferred, what I declined.
+- Every audit finding (A–E), what was fixed, what was deferred, what I declined.
 - The single most important thing left for me to do before running `/clanker`.
 
 Do not modify any other files. Do not edit my AGENTS.md without asking.

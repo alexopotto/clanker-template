@@ -67,19 +67,19 @@ Runs in the orchestrator because it needs user interaction and shared-state comm
 
 1. **PRD path.** Confirm exists and record `<slug>`.
 2. **Git state.** Confirm `git rev-parse --is-inside-work-tree`. Confirm we are NOT on `main`/`master`. If we are, ask the user for a feature branch name (default suggestion: `feat/<slug>`), then `git checkout -b <name>`.
-3. **Dependencies.** Confirm `node_modules/` exists. If not, run `pnpm install`.
+3. **Dependencies.** Read the install command from `AGENTS.md`. If dependency artifacts are missing for the detected stack, run the documented install command. If no install command is documented, STOP with `BLOCKED: install command unset in AGENTS.md`.
 4. **gh auth.** Confirm `gh auth status` succeeds. If not, warn — Phase 5 will fall back to printing the PR body.
 5. **`.gitignore`.** Confirm `.clanker/` is gitignored. If not, append it (one line, with a header comment) and commit the gitignore change: `chore: ignore clanker scratch dir`.
-6. **Baseline tests (clean room before slicing).** Run `pnpm test:unit --run` and `pnpm test:e2e` on the base state.
-   - If Playwright reports missing browsers (e.g. `Executable doesn't exist`) → STOP with `BLOCKED: run pnpm test:e2e:install`.
-   - If either suite is red → STOP with `BLOCKED: pre-existing reds — fix or delete before slicing.` Print the failing test paths. The user fixes/deletes (scaffold tests included) and re-invokes `/clanker`.
-   - If both green → write `.clanker/baseline.md`:
+6. **Baseline checks (clean room before slicing).** Run the documented verify command from `AGENTS.md`. Also run the documented e2e/smoke command if one exists and is not already included in verify.
+   - If a tool reports missing runtime assets (for example browsers, containers, fixtures, databases, SDKs) → STOP with `BLOCKED: install required test/runtime assets — <tool output summary>`.
+   - If any suite/check is red → STOP with `BLOCKED: pre-existing reds — fix or delete before slicing.` Print the failing test paths or command names. The user fixes/deletes scaffold failures and re-invokes `/clanker`.
+   - If checks are green → write `.clanker/baseline.md`:
      ```
-     unit: PASS
-     e2e: PASS
+     verify: PASS
+     e2e_or_smoke: PASS | not configured
      commit: <git rev-parse --short HEAD>
      ```
-7. **Context snapshot.** If `.clanker/context.md` is missing OR older than the newest of `CLAUDE.md`, `docs/architecture.md`, `docs/conventions.md`, `docs/testing.md`, `docs/quality-pipeline.md` → regenerate by concatenating those files into `.clanker/context.md`, each prefixed with `## <relative-path>`. **Verbatim concatenation, not summarisation.** Missing source files are fine — skip them.
+7. **Context snapshot.** If `.clanker/context.md` is missing OR older than the newest of `CLAUDE.md`, `docs/agent-setup.md`, `docs/architecture.md`, `docs/conventions.md`, `docs/testing.md`, `docs/quality-pipeline.md` → regenerate by concatenating those files into `.clanker/context.md`, each prefixed with `## <relative-path>`. **Verbatim concatenation, not summarisation.** Missing source files are fine — skip them.
 
 After pre-flight, `<slug>`, `<branch>`, and the `.clanker/` paths are recorded and reused for every subagent dispatch below.
 
